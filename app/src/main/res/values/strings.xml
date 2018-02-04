@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">2048</string>
-    <string name="score" />
+    <string name="score">score</string>
 </resources>
