@@ -257,8 +257,113 @@ public class GameView extends GridLayout {
     }
 
     private void swipeRight() {
+        moved = false;
+        int []steps = new int[4];
+
+        Card c;
+        for(int y=0; y<4; y++){
+            for (int x=0; x<4; x++){
+                c = new Card(getContext());
+                c.setNum(cardMap[x][y].getNum());
+                tempMap[x][y] = c;
+            }
+        }
+        for(int y=0; y<4; y++){
+            steps = new int[4];
+            for(int x=2;x>=0;x--){
+                if(tempMap[x][y].getNum()>0) {
+                    steps = rightRemoveBlank(x, y, steps);
+                    steps = rightMerge(x, y, steps);
+                }
+            }
+            for(int x=2;x>=0;x--){
+                //System.out.println(currStep);
+                animationSet[x][y] = new AnimationSet(true);
+                TranslateAnimation translateAnimation =
+                        new TranslateAnimation(
+                                Animation.RELATIVE_TO_SELF,0,
+                                Animation.RELATIVE_TO_SELF,1f*steps[x],
+                                Animation.RELATIVE_TO_SELF,0,
+                                Animation.RELATIVE_TO_SELF,0);
+                translateAnimation.setDuration(200);
+                translateAnimation.setAnimationListener(new Animation.AnimationListener(){
+
+                    public void onAnimationStart(Animation animation) {
+                        // TODO Auto-generated method stub
+                    }
+
+                    public void onAnimationEnd(Animation animation) {
+                        // TODO Auto-generated method stub
+                        count++;
+                        //System.out.println(count);
+                        if(count % 3==0){
+                            update(count/3-1);
+                        }
+                        if(count==12){
+                            count=0;
+                            if(moved){
+                                addRandomNum();
+                                checkComplete();
+                            }
+                        }
+                    }
+
+                    public void onAnimationRepeat(Animation animation) {
+                        // TODO Auto-generated method stub
+                    }
+                });
+                animationSet[x][y].addAnimation(translateAnimation);
+            }
+        }
+        for(int y=0; y<4; y++){
+            for (int x=2; x>=0; x--){
+                cardMap[x][y].startAnimation(animationSet[x][y]);
+            }
+        }
+    }
+    private int[] rightMerge(int x, int y, int[] steps) {
+        int xcopy = x;
+        int xright = x+1;
+
+        while(xright<=3) {
+            if(tempMap[xcopy][y].getNum()!=0) {
+                if (tempMap[xright][y].getNum() == tempMap[xcopy][y].getNum()) {
+                    steps[x]++;
+                    moved=true;
+                    tempMap[xright][y].setNum(tempMap[xcopy][y].getNum() * 2);
+                    tempMap[xcopy][y].setNum(0);
+                    for (int i = x; i >=0 ; i--) {
+                        if (tempMap[i][y].getNum() > 0) {
+                            steps = leftRemoveBlank(i, y, steps);
+                        }
+                    }
+                    break;
+                }else{
+                    break;
+                }
+            }else{
+                xcopy++;
+                xright=xcopy;
+            }
+            xright++;
+        }
+        return steps;
     }
 
+    private int[] rightRemoveBlank(int x, int y, int []steps) {
+        int xcopy = x;
+        int xright = x+1;
+        while (xright<=3) {
+            if (tempMap[xcopy][y].getNum()!=0 && tempMap[xright][y].getNum() <= 0) {
+                swap(xright, xcopy, y);
+                steps[x]++;
+                moved=true;
+            }
+            xcopy++;
+            xright++;
+        }
+        return steps;
+    }
     private void swipeUp() {
     }
 
