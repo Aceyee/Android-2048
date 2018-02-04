@@ -1,29 +1,42 @@
 package com.example.zihan.a2048;
 
 import android.content.Context;
+import android.graphics.Point;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.GridLayout;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by Zihan on 2018/1/29.
  */
 
 public class GameView extends GridLayout {
+    private static GameView gameView;
     private Card[][] cardMap = new Card[4][4];
+    private List<Point> emptyPoints = new ArrayList<Point>();
+
     public GameView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
+        gameView=this;
         initGameView();
     }
     public GameView(Context context) {
         super(context);
+        gameView=this;
         initGameView();
     }
     public GameView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        gameView=this;
         initGameView();
+    }
+    public static GameView getGameView(){
+        return gameView;
     }
     // To dynamically change the card size on different size of screens
     @Override
@@ -90,6 +103,30 @@ public class GameView extends GridLayout {
                 cardMap[x][y] = c;
             }
         }
+    }
+    public void startGame(){
+//        System.out.println("startGame");
+        MainActivity.getMainActivity().clearScore();
+        for(int y=0; y<4;y++){
+            for(int x=0; x<4; x++){
+                cardMap[x][y].setNum(0);
+            }
+        }
+        addRandomNum();
+        addRandomNum();
+    }
+    private void addRandomNum(){
+        emptyPoints.clear();
+        for(int y=0; y<4; y++){
+            for(int x=0; x<4; x++){
+                if(cardMap[x][y].getNum()<=0){
+                    emptyPoints.add(new Point(x, y));
+                }
+            }
+        }
+        double a = Math.random();
+        Point p = emptyPoints.remove((int)(a*emptyPoints.size()));
+        cardMap[p.x][p.y].setNum(Math.random()>0.1 ? 2:4);
     }
     private void swipeLeft() {
     }
