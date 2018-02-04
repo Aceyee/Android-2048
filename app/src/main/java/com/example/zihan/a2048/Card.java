@@ -11,10 +11,6 @@ import android.view.Gravity;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
-/**
- * Created by Zihan on 2017/9/20.
- */
-
 public class Card extends FrameLayout {
     private int num = 0;
     private TextView label;
