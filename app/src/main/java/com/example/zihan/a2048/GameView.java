@@ -1,11 +1,16 @@
 package com.example.zihan.a2048;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Point;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationSet;
+import android.view.animation.TranslateAnimation;
 import android.widget.GridLayout;
 
 import java.util.ArrayList;
@@ -17,7 +22,11 @@ import java.util.List;
 
 public class GameView extends GridLayout {
     private static GameView gameView;
+    private int count;
+    boolean moved = false;
     private Card[][] cardMap = new Card[4][4];
+    private Card[][] tempMap = new Card[4][4];
+    AnimationSet [][]animationSet = new AnimationSet[4][4];
     private List<Point> emptyPoints = new ArrayList<Point>();
 
     public GameView(Context context, AttributeSet attrs, int defStyle) {
@@ -35,9 +44,7 @@ public class GameView extends GridLayout {
         gameView=this;
         initGameView();
     }
-    public static GameView getGameView(){
-        return gameView;
-    }
+
     // To dynamically change the card size on different size of screens
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
@@ -129,6 +136,124 @@ public class GameView extends GridLayout {
         cardMap[p.x][p.y].setNum(Math.random()>0.1 ? 2:4);
     }
     private void swipeLeft() {
+        moved = false;
+        int []steps = new int[4];
+
+        Card c;
+        for(int y=0; y<4; y++){
+            for (int x=0; x<4; x++){
+                c = new Card(getContext());
+                c.setNum(cardMap[x][y].getNum());
+                tempMap[x][y] = c;
+            }
+        }
+        for(int y=0; y<4; y++){
+            steps = new int[4];
+            for(int x=1;x<4;x++){
+                if(tempMap[x][y].getNum()>0) {
+                    steps = leftRemoveBlank(x, y, steps);
+                    steps = leftMerge(x, y, steps);
+                }
+            }
+            for(int x=1;x<4;x++){
+                steps[x] = -1* steps[x];
+                //System.out.println(currStep);
+                animationSet[x][y] = new AnimationSet(true);
+                TranslateAnimation translateAnimation =
+                        new TranslateAnimation(
+                                Animation.RELATIVE_TO_SELF,0,
+                                Animation.RELATIVE_TO_SELF,1f*steps[x],
+                                Animation.RELATIVE_TO_SELF,0,
+                                Animation.RELATIVE_TO_SELF,0);
+                translateAnimation.setDuration(200);
+                translateAnimation.setAnimationListener(new Animation.AnimationListener(){
+
+                    public void onAnimationStart(Animation animation) {
+                        // TODO Auto-generated method stub
+                    }
+
+                    public void onAnimationEnd(Animation animation) {
+                        // TODO Auto-generated method stub
+                        count++;
+                        //System.out.println(count);
+                        if(count % 3==0){
+                            update(count/3-1);
+                        }
+                        if(count==12){
+                            count=0;
+                            if(moved){
+                                addRandomNum();
+                                checkComplete();
+                            }
+                        }
+                    }
+
+                    public void onAnimationRepeat(Animation animation) {
+                        // TODO Auto-generated method stub
+                    }
+                });
+                animationSet[x][y].addAnimation(translateAnimation);
+            }
+        }
+        for(int y=0; y<4; y++){
+            for (int x=1; x<4; x++){
+                cardMap[x][y].startAnimation(animationSet[x][y]);
+            }
+        }
+    }
+    private int[] leftMerge(int x, int y, int[] steps) {
+        int xcopy = x;
+        int xleft = x-1;
+
+        while(xleft>=0) {
+            if(tempMap[xcopy][y].getNum()!=0) {
+                if (tempMap[xleft][y].getNum() == tempMap[xcopy][y].getNum()) {
+                    steps[x]++;
+                    moved=true;
+                    tempMap[xleft][y].setNum(tempMap[xcopy][y].getNum() * 2);
+                    tempMap[xcopy][y].setNum(0);
+                    for (int i = x; i < 4; i++) {
+                        if (tempMap[i][y].getNum() > 0) {
+                            steps = leftRemoveBlank(i, y, steps);
+                        }
+                    }
+                    break;
+                }else{
+                    break;
+                }
+            }else{
+                xcopy--;
+                xleft=xcopy;
+            }
+            xleft--;
+        }
+        return steps;
+    }
+
+    private int[] leftRemoveBlank(int x, int y, int []steps) {
+        int xcopy = x;
+        int xleft = x-1;
+        while (xleft>=0) {
+            if (tempMap[xcopy][y].getNum()!=0 && tempMap[xleft][y].getNum() <= 0) {
+                swap(xleft, xcopy, y);
+                steps[x]++;
+                moved=true;
+            }
+            xcopy--;
+            xleft--;
+        }
+        return steps;
+    }
+
+    private void swap(int xleft, int x, int y){
+        int temp = tempMap[xleft][y].getNum();
+        tempMap[xleft][y].setNum(tempMap[x][y].getNum());
+        tempMap[x][y].setNum(temp);
+    }
+    private void update(int y) {
+        for (int x=0; x<4; x++){
+            cardMap[x][y].setNum(tempMap[x][y].getNum());
+        }
     }
 
     private void swipeRight() {
@@ -138,5 +263,33 @@ public class GameView extends GridLayout {
     }
 
     private void swipeDown() {
+    }
+    private void checkComplete(){
+        boolean complete = true;
+        ALL:
+        for(int y=0; y<4; y++) {
+            for (int x = 0; x < 4; x++) {
+                if(cardMap[x][y].getNum()==0||
+                        (x>0&&cardMap[x][y].equals(cardMap[x-1][y])||
+                                (x<3&&cardMap[x][y].equals(cardMap[x+1][y]))||
+                                (y>0&&cardMap[x][y].equals(cardMap[x][y-1]))||
+                                (y<3&&cardMap[x][y].equals(cardMap[x][y+1]))
+                        )){
+                    complete =false;
+                    break ALL;
+                }
+            }
+        }
+        if (complete){
+            new AlertDialog.Builder(getContext()).setTitle("你好").setMessage("游戏结束").setPositiveButton("重来", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    startGame();
+                }
+            }).show();
+        }
+    }
+    public static GameView getGameView(){
+        return gameView;
     }
 }
