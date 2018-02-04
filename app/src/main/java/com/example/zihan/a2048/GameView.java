@@ -165,7 +165,8 @@ public class GameView extends GridLayout {
                                 Animation.RELATIVE_TO_SELF,1f*steps[x],
                                 Animation.RELATIVE_TO_SELF,0,
                                 Animation.RELATIVE_TO_SELF,0);
-                translateAnimation.setDuration(200);
+                translateAnimation.setDuration(250);
+                translateAnimation.setFillAfter(true);
                 translateAnimation.setAnimationListener(new Animation.AnimationListener(){
 
                     public void onAnimationStart(Animation animation) {
@@ -285,7 +286,8 @@ public class GameView extends GridLayout {
                                 Animation.RELATIVE_TO_SELF,1f*steps[x],
                                 Animation.RELATIVE_TO_SELF,0,
                                 Animation.RELATIVE_TO_SELF,0);
-                translateAnimation.setDuration(200);
+                translateAnimation.setDuration(250);
+                translateAnimation.setFillAfter(true);
                 translateAnimation.setAnimationListener(new Animation.AnimationListener(){
 
                     public void onAnimationStart(Animation animation) {
