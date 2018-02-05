@@ -289,7 +289,7 @@ public class GameView extends GridLayout {
                         count++;
                         //System.out.println(count);
                         if(count % 3==0){
-                            update(count/3-1);
+                            update2(count/3-1);
                         }
                         if(count==12){
                             count=0;
@@ -366,6 +366,11 @@ public class GameView extends GridLayout {
             cardMap[y][x].setNum(tempMap[y][x].getNum());
         }
     }
+    private void update2(int y) {
+        for (int x=3; x>-1; x--){
+            cardMap[y][x].setNum(tempMap[y][x].getNum());
+        }
+    }
 
     private void swipeUp() {
         moved = false;
@@ -410,7 +415,7 @@ public class GameView extends GridLayout {
                         count++;
                         //System.out.println(count);
                         if(count % 3==0){
-                            update(count/3-1);
+                            update3(count/3-1);
                         }
                         if(count==12){
                             count=0;
@@ -520,7 +525,7 @@ public class GameView extends GridLayout {
                         count++;
                         //System.out.println(count);
                         if(count % 3==0){
-                            update2(count/3-1);
+                            update4(count/3-1);
                         }
                         if(count==12){
                             count=0;
@@ -592,8 +597,13 @@ public class GameView extends GridLayout {
         tempMap[y1][x].setNum(tempMap[y2][x].getNum());
         tempMap[y2][x].setNum(temp);
     }
-    private void update2(int x) {
+    private void update3(int x) {
         for (int y=0; y<4; y++){
+            cardMap[y][x].setNum(tempMap[y][x].getNum());
+        }
+    }
+    private void update4(int x) {
+        for (int y=3; y>-1; y--){
             cardMap[y][x].setNum(tempMap[y][x].getNum());
         }
     }
