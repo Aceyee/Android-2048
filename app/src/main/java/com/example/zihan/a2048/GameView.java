@@ -433,8 +433,9 @@ public class GameView extends GridLayout {
                 animationSet[y][x].addAnimation(translateAnimation);
             }
         }
-        for(int y=1; y<4; y++){
-            for (int x=0; x<4; x++){
+        //The order of adding anim matters!!
+        for (int x=0; x<4; x++){
+            for(int y=1; y<4; y++){
                 cardMap[y][x].startAnimation(animationSet[y][x]);
             }
         }
@@ -543,8 +544,8 @@ public class GameView extends GridLayout {
                 animationSet[y][x].addAnimation(translateAnimation);
             }
         }
-        for(int y=2; y>-1; y--){
-            for (int x=0; x<4; x++){
+        for (int x=0; x<4; x++){
+            for(int y=2; y>-1; y--){
                 cardMap[y][x].startAnimation(animationSet[y][x]);
             }
         }
