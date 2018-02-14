@@ -1,11 +1,16 @@
 package com.example.zihan.a2048;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Point;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationSet;
+import android.view.animation.TranslateAnimation;
 import android.widget.GridLayout;
 
 import java.util.ArrayList;
@@ -17,7 +22,11 @@ import java.util.List;
 
 public class GameView extends GridLayout {
     private static GameView gameView;
+    private int count;
+    boolean moved = false;
     private Card[][] cardMap = new Card[4][4];
+    private Card[][] tempMap = new Card[4][4];
+    AnimationSet [][]animationSet = new AnimationSet[4][4];
     private List<Point> emptyPoints = new ArrayList<Point>();
 
     public GameView(Context context, AttributeSet attrs, int defStyle) {
@@ -35,9 +44,7 @@ public class GameView extends GridLayout {
         gameView=this;
         initGameView();
     }
-    public static GameView getGameView(){
-        return gameView;
-    }
+
     // To dynamically change the card size on different size of screens
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
@@ -100,16 +107,15 @@ public class GameView extends GridLayout {
                 c = new Card(getContext());
                 c.setNum(2);
                 addView(c, CardWidth, CardHeight);
-                cardMap[x][y] = c;
+                cardMap[y][x] = c;
             }
         }
     }
     public void startGame(){
-//        System.out.println("startGame");
         MainActivity.getMainActivity().clearScore();
         for(int y=0; y<4;y++){
             for(int x=0; x<4; x++){
-                cardMap[x][y].setNum(0);
+                cardMap[y][x].setNum(0);
             }
         }
         addRandomNum();
@@ -128,15 +134,506 @@ public class GameView extends GridLayout {
         Point p = emptyPoints.remove((int)(a*emptyPoints.size()));
         cardMap[p.x][p.y].setNum(Math.random()>0.1 ? 2:4);
     }
+
     private void swipeLeft() {
+        moved = false;
+        int []steps = new int[4];
+
+        Card c;
+        for(int y=0; y<4; y++){
+            for (int x=0; x<4; x++){
+                c = new Card(getContext());
+                c.setNum(cardMap[y][x].getNum());
+                tempMap[y][x] = c;
+            }
+        }
+        for(int y=0; y<4; y++){
+            steps = new int[4];
+            for(int x=1;x<4;x++){
+                if(tempMap[y][x].getNum()>0) {
+                    steps = leftRemoveBlank(x, y, steps);
+                    steps = leftMerge(x, y, steps);
+                }
+            }
+            for(int x=1;x<4;x++){
+                steps[x] = -1* steps[x];
+                //System.out.println(currStep);
+                animationSet[y][x] = new AnimationSet(true);
+                TranslateAnimation translateAnimation =
+                        new TranslateAnimation(
+                                Animation.RELATIVE_TO_SELF,0,
+                                Animation.RELATIVE_TO_SELF,1f*steps[x],
+                                Animation.RELATIVE_TO_SELF,0,
+                                Animation.RELATIVE_TO_SELF,0);
+                translateAnimation.setDuration(250);
+                translateAnimation.setFillAfter(true);
+                translateAnimation.setAnimationListener(new Animation.AnimationListener(){
+
+                    public void onAnimationStart(Animation animation) {
+                        // TODO Auto-generated method stub
+                    }
+
+                    public void onAnimationEnd(Animation animation) {
+                        // TODO Auto-generated method stub
+                        count++;
+                        //System.out.println(count);
+                        if(count % 3==0){
+                            update(count/3-1);
+                        }
+                        if(count==12){
+                            count=0;
+                            if(moved){
+                                addRandomNum();
+                                checkComplete();
+                            }
+                        }
+                    }
+
+                    public void onAnimationRepeat(Animation animation) {
+                        // TODO Auto-generated method stub
+                    }
+                });
+                animationSet[y][x].addAnimation(translateAnimation);
+            }
+        }
+        for(int y=0; y<4; y++){
+            for (int x=1; x<4; x++){
+                cardMap[y][x].startAnimation(animationSet[y][x]);
+            }
+        }
+    }
+    private int[] leftMerge(int x, int y, int[] steps) {
+        int xcopy = x;
+        int xleft = x-1;
+
+        while(xleft>=0) {
+            if(tempMap[y][xcopy].getNum()!=0) {
+                if (tempMap[y][xleft].getNum() == tempMap[y][xcopy].getNum()) {
+                    steps[x]++;
+                    moved=true;
+                    tempMap[y][xleft].setNum(tempMap[y][xcopy].getNum() * 2);
+                    tempMap[y][xcopy].setNum(0);
+                    for (int i = x; i < 4; i++) {
+                        if (tempMap[y][i].getNum() > 0) {
+                            steps = leftRemoveBlank(i, y, steps);
+                        }
+                    }
+                    break;
+                }else{
+                    break;
+                }
+            }else{
+                xcopy--;
+                xleft=xcopy;
+            }
+            xleft--;
+        }
+        return steps;
+    }
+    private int[] leftRemoveBlank(int x, int y, int []steps) {
+        int xcopy = x;
+        int xleft = x-1;
+        while (xleft>=0) {
+            if (tempMap[y][xcopy].getNum()!=0 && tempMap[y][xleft].getNum() <= 0) {
+                swap(xleft, xcopy, y);
+                steps[x]++;
+                moved=true;
+            }
+            xcopy--;
+            xleft--;
+        }
+        return steps;
     }
 
+
     private void swipeRight() {
+        moved = false;
+        int []steps = new int[4];
+
+        Card c;
+        for(int y=0; y<4; y++){
+            for (int x=0; x<4; x++){
+                c = new Card(getContext());
+                c.setNum(cardMap[y][x].getNum());
+                tempMap[y][x] = c;
+            }
+        }
+        for(int y=0; y<4; y++){
+            steps = new int[4];
+            for(int x=2;x>-1;x--){
+                if(tempMap[y][x].getNum()>0) {
+                    steps = rightRemoveBlank(x, y, steps);
+                    steps = rightMerge(x, y, steps);
+                }
+            }
+            for(int x=2;x>-1;x--){
+                steps[x] = 1* steps[x];
+                //System.out.println(currStep);
+                animationSet[y][x] = new AnimationSet(true);
+                TranslateAnimation translateAnimation =
+                        new TranslateAnimation(
+                                Animation.RELATIVE_TO_SELF,0,
+                                Animation.RELATIVE_TO_SELF,1f*steps[x],
+                                Animation.RELATIVE_TO_SELF,0,
+                                Animation.RELATIVE_TO_SELF,0);
+                translateAnimation.setDuration(250);
+                translateAnimation.setFillAfter(true);
+                translateAnimation.setAnimationListener(new Animation.AnimationListener(){
+
+                    public void onAnimationStart(Animation animation) {
+                        // TODO Auto-generated method stub
+                    }
+
+                    public void onAnimationEnd(Animation animation) {
+                        // TODO Auto-generated method stub
+                        count++;
+                        //System.out.println(count);
+                        if(count % 3==0){
+                            update2(count/3-1);
+                        }
+                        if(count==12){
+                            count=0;
+                            if(moved){
+                                addRandomNum();
+                                checkComplete();
+                            }
+                        }
+                    }
+
+                    public void onAnimationRepeat(Animation animation) {
+                        // TODO Auto-generated method stub
+                    }
+                });
+                animationSet[y][x].addAnimation(translateAnimation);
+            }
+        }
+        for(int y=0; y<4; y++){
+            for (int x=2; x>-1; x--){
+                cardMap[y][x].startAnimation(animationSet[y][x]);
+            }
+        }
+    }
+    private int[] rightMerge(int x, int y, int[] steps) {
+        int xcopy = x;
+        int xright = x+1;
+
+        while(xright<=3) {
+            if(tempMap[y][xcopy].getNum()!=0) {
+                if (tempMap[y][xright].getNum() == tempMap[y][xcopy].getNum()) {
+                    steps[x]++;
+                    moved=true;
+                    tempMap[y][xright].setNum(tempMap[y][xcopy].getNum() * 2);
+                    tempMap[y][xcopy].setNum(0);
+                    for (int i = x; i > -1; i--) {
+                        if (tempMap[y][i].getNum() > 0) {
+                            steps = rightRemoveBlank(i, y, steps);
+                        }
+                    }
+                    break;
+                }else{
+                    break;
+                }
+            }else{
+                xcopy++;
+                xright=xcopy;
+            }
+            xright++;
+        }
+        return steps;
+    }
+    private int[] rightRemoveBlank(int x, int y, int []steps) {
+        int xcopy = x;
+        int xright = x+1;
+        while (xright<=3) {
+            if (tempMap[y][xcopy].getNum()!=0 && tempMap[y][xright].getNum() <= 0) {
+                swap(xright, xcopy, y);
+                steps[x]++;
+                moved=true;
+            }
+            xcopy++;
+            xright++;
+        }
+        return steps;
+    }
+
+    private void swap(int xleft, int x, int y){
+        int temp = tempMap[y][xleft].getNum();
+        tempMap[y][xleft].setNum(tempMap[y][x].getNum());
+        tempMap[y][x].setNum(temp);
+    }
+    private void update(int y) {
+        for (int x=0; x<4; x++){
+            cardMap[y][x].setNum(tempMap[y][x].getNum());
+        }
+    }
+    private void update2(int y) {
+        for (int x=3; x>-1; x--){
+            cardMap[y][x].setNum(tempMap[y][x].getNum());
+        }
     }
 
     private void swipeUp() {
+        moved = false;
+        int []steps = new int[4];
+
+        Card c;
+        for(int y=0; y<4; y++){
+            for (int x=0; x<4; x++){
+                c = new Card(getContext());
+                c.setNum(cardMap[y][x].getNum());
+                tempMap[y][x] = c;
+            }
+        }
+        for(int y=1; y<4; y++){
+            steps = new int[4];
+            for(int x=0;x<4;x++){
+                if(tempMap[y][x].getNum()>0) {
+                    steps = upRemoveBlank(x, y, steps);
+                    steps = upMerge(x, y, steps);
+                }
+            }
+            for(int x=0;x<4;x++){
+                steps[x] = -1 * steps[x];
+                //System.out.println(currStep);
+                animationSet[y][x] = new AnimationSet(true);
+                TranslateAnimation translateAnimation =
+                        new TranslateAnimation(
+                                Animation.RELATIVE_TO_SELF,0,
+                                Animation.RELATIVE_TO_SELF,0,
+                                Animation.RELATIVE_TO_SELF,0,
+                                Animation.RELATIVE_TO_SELF,1f*steps[x]);
+                translateAnimation.setDuration(250);
+                translateAnimation.setFillAfter(true);
+                translateAnimation.setAnimationListener(new Animation.AnimationListener(){
+
+                    public void onAnimationStart(Animation animation) {
+                        // TODO Auto-generated method stub
+                    }
+
+                    public void onAnimationEnd(Animation animation) {
+                        // TODO Auto-generated method stub
+                        count++;
+                        //System.out.println(count);
+                        if(count % 3==0){
+                            update3(count/3-1);
+                        }
+                        if(count==12){
+                            count=0;
+                            if(moved){
+                                addRandomNum();
+                                checkComplete();
+                            }
+                        }
+                    }
+
+                    public void onAnimationRepeat(Animation animation) {
+                        // TODO Auto-generated method stub
+                    }
+                });
+                animationSet[y][x].addAnimation(translateAnimation);
+            }
+        }
+        //The order of adding anim matters!!
+        for (int x=0; x<4; x++){
+            for(int y=1; y<4; y++){
+                cardMap[y][x].startAnimation(animationSet[y][x]);
+            }
+        }
+    }
+    private int[] upMerge(int x, int y, int[] steps) {
+        int ycopy = y;
+        int yup = y-1;
+
+        while(yup>=0) {
+            if(tempMap[ycopy][x].getNum()!=0) {
+                if (tempMap[yup][x].getNum() == tempMap[ycopy][x].getNum()) {
+                    steps[x]++;
+                    moved=true;
+                    tempMap[yup][x].setNum(tempMap[ycopy][x].getNum() * 2);
+                    tempMap[ycopy][x].setNum(0);
+                    for (int i = y; i < 4; i++) {
+                        if (tempMap[i][x].getNum() > 0) {
+                            steps = upRemoveBlank(x, i, steps);
+                        }
+                    }
+                    break;
+                }else{
+                    break;
+                }
+            }else{
+                ycopy--;
+                yup=ycopy;
+            }
+            yup--;
+        }
+        return steps;
+    }
+    private int[] upRemoveBlank(int x, int y, int []steps) {
+        int ycopy = y;
+        int yup = y-1;
+        while (yup>=0) {
+            if (tempMap[ycopy][x].getNum()!=0 && tempMap[yup][x].getNum() <= 0) {
+                swap2(yup, ycopy, x);
+                steps[x]++;
+                moved=true;
+            }
+            ycopy--;
+            yup--;
+        }
+        return steps;
     }
 
     private void swipeDown() {
+        moved = false;
+        int []steps = new int[4];
+
+        Card c;
+        for(int y=0; y<4; y++){
+            for (int x=0; x<4; x++){
+                c = new Card(getContext());
+                c.setNum(cardMap[y][x].getNum());
+                tempMap[y][x] = c;
+            }
+        }
+        for(int y=2; y>-1; y--){
+            steps = new int[4];
+            for(int x=0;x<4;x++){
+                if(tempMap[y][x].getNum()>0) {
+                    steps = downRemoveBlank(x, y, steps);
+                    steps = downMerge(x, y, steps);
+                }
+            }
+            for(int x=0;x<4;x++){
+                steps[x] = 1 * steps[x];
+                //System.out.println(currStep);
+                animationSet[y][x] = new AnimationSet(true);
+                TranslateAnimation translateAnimation =
+                        new TranslateAnimation(
+                                Animation.RELATIVE_TO_SELF,0,
+                                Animation.RELATIVE_TO_SELF,0,
+                                Animation.RELATIVE_TO_SELF,0,
+                                Animation.RELATIVE_TO_SELF,1f*steps[x]);
+                translateAnimation.setDuration(250);
+                translateAnimation.setFillAfter(true);
+                translateAnimation.setAnimationListener(new Animation.AnimationListener(){
+
+                    public void onAnimationStart(Animation animation) {
+                        // TODO Auto-generated method stub
+                    }
+
+                    public void onAnimationEnd(Animation animation) {
+                        // TODO Auto-generated method stub
+                        count++;
+                        //System.out.println(count);
+                        if(count % 3==0){
+                            update4(count/3-1);
+                        }
+                        if(count==12){
+                            count=0;
+                            if(moved){
+                                addRandomNum();
+                                checkComplete();
+                            }
+                        }
+                    }
+
+                    public void onAnimationRepeat(Animation animation) {
+                        // TODO Auto-generated method stub
+                    }
+                });
+                animationSet[y][x].addAnimation(translateAnimation);
+            }
+        }
+        for (int x=0; x<4; x++){
+            for(int y=2; y>-1; y--){
+                cardMap[y][x].startAnimation(animationSet[y][x]);
+            }
+        }
+    }
+    private int[] downMerge(int x, int y, int[] steps) {
+        int ycopy = y;
+        int ydown = y+1;
+
+        while(ydown<=3) {
+            if(tempMap[ycopy][x].getNum()!=0) {
+                if (tempMap[ydown][x].getNum() == tempMap[ycopy][x].getNum()) {
+                    steps[x]++;
+                    moved=true;
+                    tempMap[ydown][x].setNum(tempMap[ycopy][x].getNum() * 2);
+                    tempMap[ycopy][x].setNum(0);
+                    for (int i = y; i > -1; i--) {
+                        if (tempMap[i][x].getNum() > 0) {
+                            steps = downRemoveBlank(x, i, steps);
+                        }
+                    }
+                    break;
+                }else{
+                    break;
+                }
+            }else{
+                ycopy++;
+                ydown=ycopy;
+            }
+            ydown++;
+        }
+        return steps;
+    }
+    private int[] downRemoveBlank(int x, int y, int []steps) {
+        int ycopy = y;
+        int ydown = y+1;
+        while (ydown<=3) {
+            if (tempMap[ycopy][x].getNum()!=0 && tempMap[ydown][x].getNum() <= 0) {
+                swap2(ydown, ycopy, x);
+                steps[x]++;
+                moved=true;
+            }
+            ycopy++;
+            ydown++;
+        }
+        return steps;
+    }
+
+    private void swap2(int y1, int y2, int x){
+        int temp = tempMap[y1][x].getNum();
+        tempMap[y1][x].setNum(tempMap[y2][x].getNum());
+        tempMap[y2][x].setNum(temp);
+    }
+    private void update3(int x) {
+        for (int y=0; y<4; y++){
+            cardMap[y][x].setNum(tempMap[y][x].getNum());
+        }
+    }
+    private void update4(int x) {
+        for (int y=3; y>-1; y--){
+            cardMap[y][x].setNum(tempMap[y][x].getNum());
+        }
+    }
+    private void checkComplete(){
+        boolean complete = true;
+        ALL:
+        for(int y=0; y<4; y++) {
+            for (int x = 0; x < 4; x++) {
+                if(cardMap[x][y].getNum()==0||
+                        (x>0&&cardMap[x][y].equals(cardMap[x-1][y])||
+                                (x<3&&cardMap[x][y].equals(cardMap[x+1][y]))||
+                                (y>0&&cardMap[x][y].equals(cardMap[x][y-1]))||
+                                (y<3&&cardMap[x][y].equals(cardMap[x][y+1]))
+                        )){
+                    complete =false;
+                    break ALL;
+                }
+            }
+        }
+        if (complete){
+            new AlertDialog.Builder(getContext()).setTitle("你好").setMessage("游戏结束").setPositiveButton("重来", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    startGame();
+                }
+            }).show();
+        }
+    }
+    public static GameView getGameView(){
+        return gameView;
     }
 }
